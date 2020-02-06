@@ -3,10 +3,16 @@
 
 using namespace std;
 
-int main() {
-    CommandsControl *coco = new CommandsControl();
-    coco->ReadLexer("fly.txt");
-    coco->Praser();
-    delete(coco);
+int main(int argc, char* argv[]) {
+    if (argc == 2) {
+        const char* filename = argv[1];
+        CommandsControl *coco = new CommandsControl();
+        coco->ReadLexer(filename);
+        coco->Praser();
+        delete(coco);
+    } else {
+        cout << "Need to give file name as argument" << endl;
+    }
+
     return 0;
 }

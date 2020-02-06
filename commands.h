@@ -4,7 +4,7 @@
 
 #ifndef EX3_COMMANDS_H
 #define EX3_COMMANDS_H
-using namespace std;
+
 
 #include "iostream"
 #include "symbolTable.h"
@@ -21,12 +21,7 @@ protected:
 public:
     Command();
 
-    SymbolTables *getSymTab();
-
     void AddVarsFromSymbol(string exp);
-
-    void AddVarsFromValue(string varName, float value);
-
 
     virtual void execute() = 0;
 

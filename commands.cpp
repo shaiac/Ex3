@@ -16,6 +16,9 @@
 //
 // Created by shaiac on 16/12/2019.
 //
+/**
+ * constructors for all the commands.
+ */
 OpenServerCommand::OpenServerCommand() : Command() {}
 
 ConnectCommand::ConnectCommand() : Command() {}
@@ -49,8 +52,8 @@ Command::~Command() {
 }
 
 /**
- * All the methods that initializing the commands, saving all the values and things
- * that we need to execute the command.
+ * All the methods that called initialize... initializing the commands, saving all
+ * the values and things that we need to execute the command.
  * each command has different initialize
  */
 int OpenServerCommand::initializeCommand(list<string>::iterator begin) {
@@ -113,6 +116,7 @@ int ConditionParser::initializeCommand(list<string>::iterator begin) {
     while (begin.operator*() != "{") {
         count++;
         string tmp = begin.operator*();
+        //Checking with comparing we should use in the conditions commands
         if (tmp == ">" || tmp == ">=" || tmp == "<" || tmp == "<=" || tmp == "==" || tmp == "!=") {
             this->condition = tmp;
             lor = false;
@@ -138,7 +142,7 @@ int ConditionParser::initializeCommand(list<string>::iterator begin) {
 }
 
 /**
- * Adding vars to from the symbol table to the interpeter.
+ * Adding vars to from the symbol table to the interpeter, (with the correct value).
  */
 void Command::AddVarsFromSymbol(string exp) {
     int i = 0;
@@ -151,6 +155,7 @@ void Command::AddVarsFromSymbol(string exp) {
             }
             if (this->symbolTable->isInProgramMap(var)) {
                 float value = this->symbolTable->getVarValue(var);
+                //creating the expression string, the interpreter will know how to use it.
                 string exp = var + " = " + to_string(value);
                 this->interpreter->setVariables(exp);
                 continue;
@@ -160,12 +165,8 @@ void Command::AddVarsFromSymbol(string exp) {
     }
 }
 
-SymbolTables *Command::getSymTab() {
-    return this->symbolTable;
-}
-
 /**
- * Checking for the loop and if commands if the condition is tru ot false.
+ * Checking for the condition commands if the condition is true ot false.
  */
 void ConditionParser::CheckCondition() {
     if (isalpha(this->left[0])) {
@@ -241,7 +242,9 @@ void OpenServerCommand::loopThread(int client_socket) {
     int i = 0;
     char buffer1[1024] = {0};
     string *array = this->symbolTable->getArray();
+    //while we didnt print "done" keep do it
     while (!this->symbolTable->isFinish()) {
+        //reading all the data from the simulator
         valread = read(client_socket, buffer1, 1024);
         vector<string> v = split(buffer1);
         unordered_map<string, var>::iterator it;
@@ -249,6 +252,7 @@ void OpenServerCommand::loopThread(int client_socket) {
         while (!v.empty()) {
             it = symap->find(array[i]);
             var check = it->second;
+            //if the var is <- kind update his value.
             if (check.condition.compare("get") == 0) {
                 if (!isdigit(v.front()[0])) {
                     v.erase(v.begin());
@@ -263,6 +267,7 @@ void OpenServerCommand::loopThread(int client_socket) {
         }
         i = 0;
     }
+    //when we done, close the socket.
     close(client_socket);
 }
 
@@ -280,6 +285,7 @@ void OpenServerCommand::execute() {
     address.sin_addr.s_addr = INADDR_ANY;
     string sp = this->commandValues.front();
     this->commandValues.pop_front();
+    //if we get the port number as an expression we are using the interpreter.
     int port = this->interpreter->interpret(sp)->calculate();
     address.sin_port = htons(port);
     if (bind(socketfd, (struct sockaddr *) &address, sizeof(address)) < 0) {
@@ -296,6 +302,7 @@ void OpenServerCommand::execute() {
         exit(-4);
     }
     std::cout << "Server is now connected to Client" << std::endl;
+    //creating new thread for the server to read the data
     thread server([this, client_socket] { this->loopThread(client_socket); });
     server.detach();
 }
@@ -311,6 +318,7 @@ void ConnectCommand::loopThread(int client_socket) {
     while (!this->symbolTable->isFinish()) {
         for (it = symbolTables->begin(); it != symbolTables->end(); it++) {
             var check = it->second;
+            //if the var is -> kind and we changed him (ready to set) set it in the simulator.
             if (check.condition.compare("set") == 0 && check.readyToSet) {
                 var toChange;
                 toChange.value = client_socket;
@@ -333,8 +341,8 @@ void ConnectCommand::execute() {
         exit(-1);
     }
     //We need to create a sockaddr obj to hold address of server
-    sockaddr_in address; //in means IP4
-    address.sin_family = AF_INET;//IP4
+    sockaddr_in address;
+    address.sin_family = AF_INET;
     string addrfromC = this->commandValues.front();
     this->commandValues.pop_front();
     addrfromC = addrfromC.substr(1, addrfromC.length() - 2);
@@ -353,6 +361,7 @@ void ConnectCommand::execute() {
             break;
         }
     }
+    //opening new thread for the client
     thread client([this, client_socket] { this->loopThread(client_socket); });
     client.detach();
 }
@@ -415,7 +424,9 @@ void PrintCommand::execute() {
         cout << top << endl;
         //if need to print done, tell the program that we done and exit.
         if (top == "done") {
+            //telling the program that we are done, close all the sockets.
             this->symbolTable->done();
+            //giving 5 sec to close everything.
             sleep(5);
             exit(0);
         }
@@ -435,6 +446,7 @@ void PrintCommand::execute() {
 void SleepCommand::execute() {
     string sp = this->commandValues.front();
     int num = this->interpreter->interpret(sp)->calculate();
+    //we are given the time to sleep in millisec so we divide it by 1000
     sleep(num / 1000);
 }
 
